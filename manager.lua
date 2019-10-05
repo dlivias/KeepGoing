@@ -2,12 +2,13 @@
 
 -- imports:
 local Player = require 'player'
-local map1 = require 'map1'
+local Enemy = require 'enemy'
+local level1 = require 'level1'
 
 -- Class
 Manager = {
     state = 'start',
-    map = {},       -- initialize via .load()
+    level = {},     -- initialize via .load()
     player = {},    -- initialize via .load()
     game_objects = {},
     is_collision = false,   -- for debuging purpose
@@ -15,8 +16,18 @@ Manager = {
 
 Manager.States = { 'start', 'play' }
 
-function loadLevel(self, map)
-    self.map = map
+function loadLevel(self, level)
+    self.level = level
+    local map = level.map
+    -- Load enemies
+    for i, enemy_data in ipairs(level.enemies_data) do
+        local enemy = Enemy:new(self, 'classic',
+                                (enemy_data.col - 0.5)*map.tile_w + 0.5, (enemy_data.row - 0.5)*map.tile_h + 0.5,
+                                enemy_data.rotation, enemy_data.speed)
+        print(tostring(enemy.x)..', '..tostring(enemy.y))
+        table.insert(self.game_objects, enemy)
+    end
+    -- Load obstacles
     for row = 1, map.height do
         for col = 1, map.width do
             local tile = map.tiles[map.data[row][col]]
@@ -138,14 +149,14 @@ end
 function Manager:load()
     self.player = Player:new(self)
     table.insert(self.game_objects, self.player)
-    loadLevel(self, map1)
+    loadLevel(self, level1)
 end
 
 function Manager:update(dt)
     if self.state == 'start' then
         if love.keyboard.isDown('space') then
             self.state = 'play'
-            self.player:startMoving()
+            --!!self.player:startMoving()
         end
     end
 
@@ -176,7 +187,10 @@ function Manager:draw()
     if self.state == 'start' then
         drawStartMenu()
     elseif self.state == 'play' then
-        self.map:draw()
+        self.level:draw()
+        for i, obj in ipairs(self.game_objects) do
+            if obj.type == 'enemy' then obj:draw() end
+        end
         self.player:draw()
     end
 end
