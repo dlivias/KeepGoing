@@ -1,10 +1,22 @@
 -- Central class, singleton
+
+-- imports:
+local Player = require 'player'
+local map1 = require 'map1'
+
+-- Class
 Manager = {
+    state = 'start',
+    map = {},       -- initialize via .load()
+    player = {},    -- initialize via .load()
     game_objects = {},
     is_collision = false,   -- for debuging purpose
 }
 
-function Manager:loadLevel(map)
+Manager.States = { 'start', 'play' }
+
+function loadLevel(self, map)
+    self.map = map
     for row = 1, map.height do
         for col = 1, map.width do
             local tile = map.tiles[map.data[row][col]]
@@ -26,8 +38,12 @@ function Manager:loadLevel(map)
     end
 end
 
-function Manager:addGameObject(obj)
-    table.insert(self.game_objects, obj)
+function drawStartMenu()
+    local width, height = love.graphics.getDimensions()
+    love.graphics.setColor(244 / 255, 246 / 255, 247 / 255) -- white
+    love.graphics.rectangle('fill', 1, 1, width, height)
+    love.graphics.setColor(243/255, 156/255, 18/255)    -- yellow, like the player color
+    love.graphics.print('PRESS SPACE TO START', width/2 - 75, height/2 - 7, 0)
 end
 
 function vectorMul(line1, line2)
@@ -108,25 +124,60 @@ function isCollide(obj1, obj2)
     return false
 end
 
+function Manager:restart()
+    if self.state == 'start' then
+        return
+    end
+
+    local new_player = Player:new(self)
+    self.player = new_player
+    self.game_objects[1] = new_player
+    self.state = 'start'
+end
+
+function Manager:load()
+    self.player = Player:new(self)
+    table.insert(self.game_objects, self.player)
+    loadLevel(self, map1)
+end
+
 function Manager:update(dt)
-    -- Check for collisions
-    self.is_collision = false
-    for i, obj1 in ipairs(self.game_objects) do
-        for j = i + 1, #self.game_objects do
-            local obj2 = self.game_objects[j]
-            if isCollide(obj1, obj2) then
-                self.is_collision = true
-                if obj1.onCollision then obj1:onCollision(obj2) end
-                if obj2.onCollision then obj2:onCollision(obj1) end
-            end
+    if self.state == 'start' then
+        if love.keyboard.isDown('space') then
+            self.state = 'play'
+            self.player:startMoving()
         end
     end
 
-    -- Update game objects
-    for i, obj in ipairs(self.game_objects) do
-        if obj.is_updatable then
-            obj:update(dt)
+    if self.state == 'play' then
+        -- Check for collisions
+        self.is_collision = false
+        for i, obj1 in ipairs(self.game_objects) do
+            for j = i + 1, #self.game_objects do
+                local obj2 = self.game_objects[j]
+                if isCollide(obj1, obj2) then
+                    self.is_collision = true
+                    if obj1.onCollision then obj1:onCollision(obj2) end
+                    if obj2.onCollision then obj2:onCollision(obj1) end
+                end
+            end
         end
+
+        -- Update game objects
+        for i, obj in ipairs(self.game_objects) do
+            if obj.is_updatable then
+                obj:update(dt)
+            end
+        end
+    end
+end
+
+function Manager:draw()
+    if self.state == 'start' then
+        drawStartMenu()
+    elseif self.state == 'play' then
+        self.map:draw()
+        self.player:draw()
     end
 end
 

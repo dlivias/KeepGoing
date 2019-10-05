@@ -1,5 +1,7 @@
 -- Map class
 
+local Utils = require 'utils'
+
 Map = {}
 
 -- Utility
@@ -13,8 +15,8 @@ end
 
 function Map:new(tbl_map, tbl_tiles, tile_w, tile_h)
     local instance = {
-        data = copy(tbl_map),
-        tiles = copy(tbl_tiles),
+        data = Utils.copy(tbl_map),
+        tiles = Utils.copy(tbl_tiles),
         height = #tbl_map,
         width = tbl_map[1] and #tbl_map[1] or 0,
         tile_w = tile_w,

@@ -3,13 +3,14 @@
 Player = {}
 Player.type = 'player'
 Player.is_updatable = true
-Player.Mods = { 'normal', 'repulsion', 'wait_for_turn' }
+Player.Mods = { 'normal', 'repulsion', 'wait_for_turn', 'stop' }
 
 -- x, y - start position, default - center of the screen
-function Player:new(x, y)
+function Player:new(manager, x, y)
     -- instance - экземпляр класса Player
     local instance = {    -- fields
-        mod = 'normal',     -- 1 of Mods
+        manager = manager,
+        mod = 'stop',     -- 1 of Mods
         x = x or math.floor((1 + love.graphics.getWidth()) / 2 + 0.5),  -- default - center of screen
         y = y or math.floor((1 + love.graphics.getHeight()) / 2 + 0.5),
         rotation = -math.pi / 2,    -- (-pi, pi]
@@ -25,6 +26,12 @@ function Player:new(x, y)
     }
     setmetatable(instance, { __index = Player }) -- теперь instance может использовать методы и поля Player
     return instance
+end
+
+function Player:startMoving()
+    if self.mod == 'stop' or self.mod == 'wait_for_turn' then
+        self.mod = 'normal'
+    end
 end
 
 -- WASD, that already treated should not affect before they will released
@@ -95,7 +102,8 @@ local function repulsionModUpdate(self, dt)
     -- Изменение мода
     if self.speed == 0 then
         self.collision_objs_set = {}
-        self.mod = 'wait_for_turn'
+        self.mod = 'stop'
+        self.manager:restart()
     end
 end
 
@@ -129,6 +137,8 @@ function Player:update(dt)
         repulsionModUpdate(self, dt)
     elseif self.mod == 'wait_for_turn' then
         waitForTurnModUpdate(self, dt)
+    elseif self.mod == 'stop' then
+        -- nothing to do
     end
 end
 
